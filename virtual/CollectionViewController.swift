@@ -71,12 +71,11 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
             .DocumentDirectory, .UserDomainMask, true)[0]
         
         print(documentsPath)
-        
-        
-        
 
         for path in pin.valueForKey("photo")!.valueForKey("path")! as! NSSet {
-            let image = UIImage(contentsOfFile: path as! String)
+            let filePath = documentsPath.stringByAppendingString(path as! String)
+            
+            let image = UIImage(contentsOfFile: filePath as! String)
             if image == nil {
                 print("missing image at: \(path)")
             }
@@ -131,7 +130,7 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
                     // filename from Flickr is unique), and write the image to disk.
                     let documentsPath = NSSearchPathForDirectoriesInDomains(
                         .DocumentDirectory, .UserDomainMask, true)[0]
-                    let filePath = documentsPath.stringByAppendingString("/"+photoOps.fileName())
+                    let filePath = documentsPath.stringByAppendingString(photoOps.fileName())
                     print(filePath)
                     let success = imageData.writeToFile(filePath, atomically: true)
                     if !success {
@@ -141,7 +140,7 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
                     
                     self.photos.append(photoOps.flickrImage())
                     self.imagesReadyArray[i] = true
-                    self.savePhoto(filePath)
+                    self.savePhoto(photoOps.fileName())
                     completion(result: true)
                     if self.imagesReadyArray.count >= self.photoCount {
                         dispatch_async(dispatch_get_main_queue(),{
