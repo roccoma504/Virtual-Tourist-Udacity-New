@@ -28,7 +28,7 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
     private var photos = [UIImage!]();
     private var imagesReadyArray = [Bool!]()
     private var managedPhotos = [NSManagedObject]()
-
+    
     /**
      Perform setup processing.
      */
@@ -36,9 +36,19 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
         super.viewDidLoad()
         mapView.delegate = self
         setupMap()
-        retrieveNewCollection()
+        
+        let appDelegate = UIApplication.sharedApplication().delegate as! AppDelegate
+        let managedContext = appDelegate.managedObjectContext
+        
+        if pinRequest(managedContext).valueForKey("photo")?.count > 0 {
+            retreiveStoredCollection(pinRequest(managedContext) as! NSManagedObject)
+        }
+        else {
+            retrieveNewCollection()
+            updateActivity(true)
+        }
+        
         newCollectionButton.enabled = false;
-        updateActivity(true)
     }
     
     /**
@@ -49,6 +59,33 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
             long: (receivedAnnotation.annotation?.coordinate.longitude)!) { (result) -> Void in
                 self.reload()
         }
+    }
+    
+    private func retreiveStoredCollection(pin : NSManagedObject) {
+        updateActivity(false)
+        
+        
+        // Get the document directory path, append the file name (we assume the
+        // filename from Flickr is unique), and write the image to disk.
+        let documentsPath = NSSearchPathForDirectoriesInDomains(
+            .DocumentDirectory, .UserDomainMask, true)[0]
+        
+        print(documentsPath)
+        
+        
+        
+
+        for path in pin.valueForKey("photo")!.valueForKey("path")! as! NSSet {
+            let image = UIImage(contentsOfFile: path as! String)
+            if image == nil {
+                print("missing image at: \(path)")
+            }
+            print("Loading image from path: \(path)")
+            photos.append(image)
+            imagesReadyArray.append(true)
+        }
+        photoCount = pin.valueForKey("photo")!.count
+        self.reload()
     }
     
     /**
@@ -94,7 +131,7 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
                     // filename from Flickr is unique), and write the image to disk.
                     let documentsPath = NSSearchPathForDirectoriesInDomains(
                         .DocumentDirectory, .UserDomainMask, true)[0]
-                    let filePath = documentsPath.stringByAppendingString(photoOps.fileName())
+                    let filePath = documentsPath.stringByAppendingString("/"+photoOps.fileName())
                     print(filePath)
                     let success = imageData.writeToFile(filePath, atomically: true)
                     if !success {
@@ -142,6 +179,11 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
                 "cell", forIndexPath: indexPath) as! FlickrCollectionViewCell
             
             // If the images are retrived then set the collection cells.
+            guard imagesReadyArray.count > 0
+                else {
+                    cell.flickrImage.image = UIImage(named:"PlaceHolder.png")
+                    return cell
+            }
             if imagesReadyArray[indexPath.row] == true {
                 cell.flickrImage.image = photos[indexPath.row]
                 cell.activiy.stopAnimating()
@@ -221,25 +263,31 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
         let managedContext = appDelegate.managedObjectContext
         let photoEntity = NSEntityDescription.entityForName("Photo",inManagedObjectContext: managedContext)
         let photo = NSManagedObject(entity: photoEntity!,insertIntoManagedObjectContext: managedContext)
-        let pinEntity = NSEntityDescription.entityForName("Pin",inManagedObjectContext: managedContext)
+        
+        do {
+            photo.setValue(path, forKey: "path")
+            photo.setValue(pinRequest(managedContext), forKey: "pin")
+            try managedContext.save()
+        } catch let error as NSError  {
+            showAlert("Could not save data. The photos were not saved.")
+        }
+    }
+    
+    func pinRequest(context : NSManagedObjectContext) -> AnyObject {
+        
+        let pinEntity = NSEntityDescription.entityForName("Pin",inManagedObjectContext: context)
         let request = NSFetchRequest()
         request.entity = pinEntity
         request.predicate = NSPredicate(format: "(id = %@)", receivedPinId)
         
         do {
-        var results = try managedContext.executeFetchRequest(request)
-            photo.setValue(path, forKey: "path")
-            photo.setValue(results[0], forKey: "pin")
+            let results = try context.executeFetchRequest(request)
+            return results[0]
+            
         }
         catch {
             showAlert("Could not acces Core Data. Your photos were not saved")
-            return
-        }
-        
-        do {
-            try managedContext.save()
-        } catch let error as NSError  {
-            showAlert("Could not save data. The photos were not saved.")
+            return []
         }
     }
     
