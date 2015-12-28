@@ -29,7 +29,6 @@ class MapViewController: UIViewController, MKMapViewDelegate {
         addTapAction(mapView: mapView, target:self, action: "addAnnotation:")
         loadMapConfig()
         fetchPins()
-        print(pins)
     }
     
     /**
@@ -63,11 +62,10 @@ class MapViewController: UIViewController, MKMapViewDelegate {
                 coordinate: CLLocationCoordinate2D(
                     latitude: i.valueForKey("lat") as!Double,
                     longitude: i.valueForKey("long") as! Double),
-                title:"title",
+                title:"View Pictures!",
                 id:(i.valueForKey("id") as? String)!)
             
             dispatch_async(dispatch_get_main_queue(),{
-                print("add")
                 self.mapView.addAnnotation(tempPin)
             })
         }
@@ -91,18 +89,26 @@ class MapViewController: UIViewController, MKMapViewDelegate {
         mapView.removeGestureRecognizer(mapView.gestureRecognizers![0])
         
         // Create a new pin object and add it to the pin array.
-        savePin(annotation.coordinate.latitude, long: annotation.coordinate.longitude,id: String(pins.count + 1))
+        savePin(annotation.coordinate.latitude, long: annotation.coordinate.longitude,id: randomString())
         
-        print ("Pin count -> " + String(pins.count))
         addTapAction(mapView: mapView, target:self, action: "addAnnotation:")
     }
     
     func mapView(mapView: MKMapView, didSelectAnnotationView: MKAnnotationView) {
-        clickedPin = Pin(coordinate: CLLocationCoordinate2D(latitude:
-            didSelectAnnotationView.annotation!.coordinate.latitude,
-            longitude: didSelectAnnotationView.annotation!.coordinate.longitude),
-            title: "",
-            id: String(pins.count))
+        
+        
+        
+        for i in pins {
+            if didSelectAnnotationView.annotation?.coordinate.latitude == i.valueForKey("lat") as? Double && didSelectAnnotationView.annotation?.coordinate.longitude == i.valueForKey("long") as? Double {
+                print(i)
+                clickedPin = Pin(coordinate:
+                    CLLocationCoordinate2D(latitude: i.valueForKey("lat") as! Double, longitude: i.valueForKey("long") as! Double), title: "", id: i.valueForKey("id") as! String)
+                break
+            }
+            print("no match")
+            
+        }
+        
         self.performSegueWithIdentifier("mapToPictures", sender: self)
     }
     
@@ -135,7 +141,6 @@ class MapViewController: UIViewController, MKMapViewDelegate {
     of the mapview.
     */
     private func setMapConfig() {
-        print("data set")
         NSUserDefaults.standardUserDefaults().setObject(
             mapView.centerCoordinate.latitude, forKey: "centerLat")
         NSUserDefaults.standardUserDefaults().setObject(
@@ -196,6 +201,8 @@ class MapViewController: UIViewController, MKMapViewDelegate {
             let clickedAnnotationView = MKAnnotationView(annotation:
                 clickedPin, reuseIdentifier: "Pin")
             
+            print (clickedPin.id)
+            
             destView.receivedPinId = clickedPin.id
             destView.receivedAnnotation = clickedAnnotationView
         }
@@ -226,8 +233,6 @@ class MapViewController: UIViewController, MKMapViewDelegate {
         do {
             try managedContext.save()
             pins.append(pin)
-            print("pin saved")
-            print(pin)
         } catch let error as NSError  {
             print("Could not save \(error), \(error.userInfo)")
             showAlert("Could not save data. The new pin was not saved.")
@@ -270,5 +275,14 @@ class MapViewController: UIViewController, MKMapViewDelegate {
                 style: UIAlertActionStyle.Default,handler: nil))
             self.presentViewController(alertController,animated: true,completion: nil)
         })
+    }
+    
+    func randomString() -> String {
+        var s = [String]()
+        for _ in (1...5) {
+            s.append(String(arc4random_uniform(10)))
+        }
+        return s.joinWithSeparator("")
+        
     }
 }

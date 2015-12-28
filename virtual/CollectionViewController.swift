@@ -34,20 +34,22 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
      */
     override func viewDidLoad() {
         super.viewDidLoad()
+    }
+    
+    override func viewDidAppear(animated: Bool) {
         mapView.delegate = self
         setupMap()
-        
         let appDelegate = UIApplication.sharedApplication().delegate as! AppDelegate
         let managedContext = appDelegate.managedObjectContext
         
         if pinRequest(managedContext).valueForKey("photo")?.count > 0 {
             retreiveStoredCollection(pinRequest(managedContext) as! NSManagedObject)
+            updateActivity(false)
         }
         else {
             retrieveNewCollection()
             updateActivity(true)
         }
-        
         newCollectionButton.enabled = false;
     }
     
@@ -62,8 +64,6 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
     }
     
     private func retreiveStoredCollection(pin : NSManagedObject) {
-        updateActivity(false)
-        
         
         // Get the document directory path, append the file name (we assume the
         // filename from Flickr is unique), and write the image to disk.
@@ -71,11 +71,11 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
             .DocumentDirectory, .UserDomainMask, true)[0]
         
         print(documentsPath)
-
+        
         for path in pin.valueForKey("photo")!.valueForKey("path")! as! NSSet {
             let filePath = documentsPath.stringByAppendingString(path as! String)
             
-            let image = UIImage(contentsOfFile: filePath as! String)
+            let image = UIImage(contentsOfFile: filePath)
             if image == nil {
                 print("missing image at: \(path)")
             }
@@ -265,10 +265,17 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
         
         do {
             photo.setValue(path, forKey: "path")
-            photo.setValue(pinRequest(managedContext), forKey: "pin")
+            
+            let storedPin = pinRequest(managedContext)
+            
+                photo.setValue(storedPin, forKey: "pin")
+        
+            
             try managedContext.save()
-        } catch let error as NSError  {
+            
+        } catch {
             showAlert("Could not save data. The photos were not saved.")
+            return
         }
     }
     
@@ -279,8 +286,13 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
         request.entity = pinEntity
         request.predicate = NSPredicate(format: "(id = %@)", receivedPinId)
         
+        print("id -> " + String(receivedPinId))
+        
         do {
             let results = try context.executeFetchRequest(request)
+            guard results.count > 0 else {
+                return []
+            }
             return results[0]
             
         }
