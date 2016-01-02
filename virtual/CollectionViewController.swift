@@ -70,8 +70,6 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
         let documentsPath = NSSearchPathForDirectoriesInDomains(
             .DocumentDirectory, .UserDomainMask, true)[0]
         
-        print(documentsPath)
-        
         for path in pin.valueForKey("photo")!.valueForKey("path")! as! NSSet {
             let filePath = documentsPath.stringByAppendingString(path as! String)
             
@@ -80,7 +78,6 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
                 print("missing image at: \(path)")
             }
             print("Loading image from path: \(path)")
-            photos.append(image)
             imagesReadyArray.append(true)
         }
         photoCount = pin.valueForKey("photo")!.count
@@ -130,15 +127,15 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
                     // filename from Flickr is unique), and write the image to disk.
                     let documentsPath = NSSearchPathForDirectoriesInDomains(
                         .DocumentDirectory, .UserDomainMask, true)[0]
+                    
                     let filePath = documentsPath.stringByAppendingString(photoOps.fileName())
-                    print(filePath)
                     let success = imageData.writeToFile(filePath, atomically: true)
                     if !success {
                         self.showAlert("Could not save image. Your storage may be full. Free some space and try again.")
                         return
                     }
                     
-                    self.photos.append(photoOps.flickrImage())
+                    //self.photos.append(photoOps.flickrImage())
                     self.imagesReadyArray[i] = true
                     self.savePhoto(photoOps.fileName())
                     completion(result: true)
@@ -156,9 +153,9 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
     /**
      Returns the number of cells in the collection.
      */
-    func collectionView(
-        collectionView: UICollectionView,
+    func collectionView(collectionView: UICollectionView,
         numberOfItemsInSection section: Int) -> Int {
+            
             noPhotoLabel.hidden = true
             
             if photoCount == 0 {
@@ -184,7 +181,23 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
                     return cell
             }
             if imagesReadyArray[indexPath.row] == true {
-                cell.flickrImage.image = photos[indexPath.row]
+                //cell.flickrImage.image = photos[indexPath.row]
+                
+                let appDelegate = UIApplication.sharedApplication().delegate as! AppDelegate
+                let managedContext = appDelegate.managedObjectContext
+                let documentsPath = NSSearchPathForDirectoriesInDomains(
+                    .DocumentDirectory, .UserDomainMask, true)[0]
+                
+                let managedPin = pinRequest(managedContext)
+                
+                let storedPathSet = managedPin.valueForKey("photo")?.valueForKey("path") as! NSSet
+                let storedPathArray = storedPathSet.allObjects
+                let filePath = documentsPath.stringByAppendingString(storedPathArray[indexPath.row] as! String)
+                
+                
+                cell.flickrImage.image = UIImage(contentsOfFile: filePath)
+                
+                
                 cell.activiy.stopAnimating()
             }
                 
@@ -200,8 +213,31 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
      */
     func collectionView(collectionView: UICollectionView,
         didSelectItemAtIndexPath indexPath: NSIndexPath) {
-            self.photos.removeAtIndex(indexPath.row)
             photoCount = photoCount - 1
+            
+            let appDelegate = UIApplication.sharedApplication().delegate as! AppDelegate
+            let managedContext = appDelegate.managedObjectContext
+            
+            
+            let managedPin = pinRequest(managedContext)
+            
+            //let storedPathSet = managedPin.valueForKey("photo")?.valueForKey("path") as! NSSet
+            //var storedPathArray = storedPathSet.allObjects
+            //storedPathArray.removeAtIndex(indexPath.row)
+            do {
+                
+                let storedPhotos = managedPin.valueForKey("photo")?.allObjects
+                managedPin.valueForKey("photo")?.removeObject(storedPhotos![indexPath.row])
+                
+                
+                try managedContext.save()
+                
+            } catch {
+                showAlert("Could not save data. The photos were not saved.")
+                return
+            }
+            
+            
             collectionView.deleteItemsAtIndexPaths([indexPath])
     }
     
@@ -214,7 +250,6 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
         photoCount = 0
         updateActivity(true)
         imagesReadyArray = [false]
-        photos = []
         reload()
         retrieveNewCollection()
     }
@@ -242,12 +277,8 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
      */
     private func updateActivity(start : Bool) {
         dispatch_async(dispatch_get_main_queue(),{
-            if start {
-                self.activityView.startAnimating()
-            }
-            else {
-                self.activityView.stopAnimating()
-            }
+            if start {self.activityView.startAnimating()}
+            else {self.activityView.stopAnimating()}
         })
     }
     
@@ -268,8 +299,8 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
             
             let storedPin = pinRequest(managedContext)
             
-                photo.setValue(storedPin, forKey: "pin")
-        
+            photo.setValue(storedPin, forKey: "pin")
+            
             
             try managedContext.save()
             
