@@ -22,6 +22,7 @@
 		394143771C27233B00E4C0B1 /* PhotoNetworkOps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 394143761C27233B00E4C0B1 /* PhotoNetworkOps.swift */; };
 		394143791C27240F00E4C0B1 /* APIKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 394143781C27240F00E4C0B1 /* APIKeys.swift */; };
 		396C6F081C30930600C3AE77 /* PlaceHolder.png in Resources */ = {isa = PBXBuildFile; fileRef = 396C6F071C30930600C3AE77 /* PlaceHolder.png */; };
+		398199111C38A50500554BCC /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 398199101C38A50500554BCC /* Utilities.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -63,6 +64,7 @@
 		394143761C27233B00E4C0B1 /* PhotoNetworkOps.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PhotoNetworkOps.swift; sourceTree = "<group>"; };
 		394143781C27240F00E4C0B1 /* APIKeys.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = APIKeys.swift; sourceTree = "<group>"; };
 		396C6F071C30930600C3AE77 /* PlaceHolder.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = PlaceHolder.png; sourceTree = "<group>"; };
+		398199101C38A50500554BCC /* Utilities.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -120,6 +122,7 @@
 				394143701C23939B00E4C0B1 /* CollectionViewController.swift */,
 				394143721C2396C000E4C0B1 /* FlickrCollectionViewCell.swift */,
 				393C29DD1C23867300027209 /* MapViewController.swift */,
+				398199101C38A50500554BCC /* Utilities.swift */,
 				394143741C2399E600E4C0B1 /* Photo.swift */,
 				394143761C27233B00E4C0B1 /* PhotoNetworkOps.swift */,
 				3941436E1C238C1000E4C0B1 /* Pin.swift */,
@@ -292,6 +295,7 @@
 				393C29DC1C23867300027209 /* AppDelegate.swift in Sources */,
 				3941436F1C238C1000E4C0B1 /* Pin.swift in Sources */,
 				394143771C27233B00E4C0B1 /* PhotoNetworkOps.swift in Sources */,
+				398199111C38A50500554BCC /* Utilities.swift in Sources */,
 				394143711C23939B00E4C0B1 /* CollectionViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

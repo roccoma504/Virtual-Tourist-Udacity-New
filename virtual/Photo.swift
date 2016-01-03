@@ -12,8 +12,23 @@ import MapKit
 class Photo : NSManagedObject {
     
     private var path : NSURL!
-    
-    init(path : NSURL) {
+
+    init(path: NSURL) {
         self.path = path
+    }
+    
+    func deletePhoto() {
+        let documentsPath = NSSearchPathForDirectoriesInDomains(.DocumentDirectory, .UserDomainMask, true)[0]
+        let fileManager = NSFileManager.defaultManager()
+        let filePath = documentsPath.stringByAppendingString(String(path))
+        
+        do {
+        try fileManager.removeItemAtPath(filePath)
+            
+        }
+        catch {
+            print("remove fail")
+        }
+
     }
 }

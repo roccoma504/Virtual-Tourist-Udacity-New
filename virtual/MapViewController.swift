@@ -95,20 +95,13 @@ class MapViewController: UIViewController, MKMapViewDelegate {
     }
     
     func mapView(mapView: MKMapView, didSelectAnnotationView: MKAnnotationView) {
-        
-        
-        
         for i in pins {
             if didSelectAnnotationView.annotation?.coordinate.latitude == i.valueForKey("lat") as? Double && didSelectAnnotationView.annotation?.coordinate.longitude == i.valueForKey("long") as? Double {
-                print(i)
                 clickedPin = Pin(coordinate:
                     CLLocationCoordinate2D(latitude: i.valueForKey("lat") as! Double, longitude: i.valueForKey("long") as! Double), title: "", id: i.valueForKey("id") as! String)
                 break
             }
-            print("no match")
-            
         }
-        
         self.performSegueWithIdentifier("mapToPictures", sender: self)
     }
     
@@ -201,8 +194,6 @@ class MapViewController: UIViewController, MKMapViewDelegate {
             let clickedAnnotationView = MKAnnotationView(annotation:
                 clickedPin, reuseIdentifier: "Pin")
             
-            print (clickedPin.id)
-            
             destView.receivedPinId = clickedPin.id
             destView.receivedAnnotation = clickedAnnotationView
         }
@@ -275,14 +266,5 @@ class MapViewController: UIViewController, MKMapViewDelegate {
                 style: UIAlertActionStyle.Default,handler: nil))
             self.presentViewController(alertController,animated: true,completion: nil)
         })
-    }
-    
-    func randomString() -> String {
-        var s = [String]()
-        for _ in (1...5) {
-            s.append(String(arc4random_uniform(10)))
-        }
-        return s.joinWithSeparator("")
-        
     }
 }

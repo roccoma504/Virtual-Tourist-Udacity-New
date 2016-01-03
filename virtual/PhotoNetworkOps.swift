@@ -95,7 +95,6 @@ class PhotoNetworkOps {
                         /* 8 - If an image exists at the url, set the image and title */
                         let imageURL = NSURL(string: imageUrlString)
                         if let _ = NSData(contentsOfURL: imageURL!) {
-                            print(imageURL)
                             self.urlArray.append(imageURL!)
                             if i >= (photoArray.count - 1) {
                             completion(result: true)
@@ -116,13 +115,13 @@ class PhotoNetworkOps {
     }
     
     func downloadImage(url: NSURL, completion: (result: Bool) -> Void)  {
-        print("Download Started")
-        print("lastPathComponent: " + (url.lastPathComponent ?? ""))
+        //print("Download Started")
+        //print("lastPathComponent: " + (url.lastPathComponent ?? ""))
         getDataFromUrl(url) { (data, response, error)  in
             guard let data = data where error == nil else { return }
             self.filename = response?.suggestedFilename ?? ""
-            print(response?.suggestedFilename ?? "")
-            print("Download Finished")
+            //print(response?.suggestedFilename ?? "")
+            //print("Download Finished")
             self.image = UIImage(data: data)!
             completion(result: true)
         }

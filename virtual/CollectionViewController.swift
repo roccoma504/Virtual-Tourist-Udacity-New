@@ -27,23 +27,30 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
     private var photoCount = 0;
     private var photos = [UIImage!]();
     private var imagesReadyArray = [Bool!]()
-    private var managedPhotos = [NSManagedObject]()
+    private var documentsPath : String!
+    private var managedPin : AnyObject!
+    private var appDelegate : AppDelegate!
+    private var managedContext : NSManagedObjectContext!
     
     /**
      Perform setup processing.
      */
     override func viewDidLoad() {
+        documentsPath = NSSearchPathForDirectoriesInDomains(
+            .DocumentDirectory, .UserDomainMask, true)[0]
+        appDelegate = UIApplication.sharedApplication().delegate as! AppDelegate
+        managedContext = appDelegate.managedObjectContext
+        managedPin = objectRetrieve(managedContext, objectid: receivedPinId, entity: "Pin")
+        
         super.viewDidLoad()
     }
     
     override func viewDidAppear(animated: Bool) {
         mapView.delegate = self
         setupMap()
-        let appDelegate = UIApplication.sharedApplication().delegate as! AppDelegate
-        let managedContext = appDelegate.managedObjectContext
         
-        if pinRequest(managedContext).valueForKey("photo")?.count > 0 {
-            retreiveStoredCollection(pinRequest(managedContext) as! NSManagedObject)
+        if objectRetrieve(managedContext, objectid: receivedPinId, entity: "Pin").valueForKey("photo")?.count > 0 {
+            retreiveStoredCollection(objectRetrieve(managedContext, objectid: receivedPinId, entity: "Pin") as! NSManagedObject)
             updateActivity(false)
         }
         else {
@@ -65,19 +72,16 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
     
     private func retreiveStoredCollection(pin : NSManagedObject) {
         
-        // Get the document directory path, append the file name (we assume the
-        // filename from Flickr is unique), and write the image to disk.
-        let documentsPath = NSSearchPathForDirectoriesInDomains(
-            .DocumentDirectory, .UserDomainMask, true)[0]
+        let storedPhotos = pin.valueForKey("photo")?.allObjects
         
-        for path in pin.valueForKey("photo")!.valueForKey("path")! as! NSSet {
-            let filePath = documentsPath.stringByAppendingString(path as! String)
+    for photo in storedPhotos! {
+            let filePath = documentsPath.stringByAppendingString(photo.valueForKey("path") as! String)
             
             let image = UIImage(contentsOfFile: filePath)
             if image == nil {
-                print("missing image at: \(path)")
+                print("missing image at: \(photo)")
             }
-            print("Loading image from path: \(path)")
+            print("Loading image from path: \(photo)")
             imagesReadyArray.append(true)
         }
         photoCount = pin.valueForKey("photo")!.count
@@ -123,12 +127,7 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
                     // Convert the image to data for Core Data storage.
                     let imageData: NSData = UIImageJPEGRepresentation(photoOps.flickrImage(), 1.0)!
                     
-                    // Get the document directory path, append the file name (we assume the
-                    // filename from Flickr is unique), and write the image to disk.
-                    let documentsPath = NSSearchPathForDirectoriesInDomains(
-                        .DocumentDirectory, .UserDomainMask, true)[0]
-                    
-                    let filePath = documentsPath.stringByAppendingString(photoOps.fileName())
+                    let filePath = self.documentsPath.stringByAppendingString(photoOps.fileName())
                     let success = imageData.writeToFile(filePath, atomically: true)
                     if !success {
                         self.showAlert("Could not save image. Your storage may be full. Free some space and try again.")
@@ -181,14 +180,6 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
                     return cell
             }
             if imagesReadyArray[indexPath.row] == true {
-                //cell.flickrImage.image = photos[indexPath.row]
-                
-                let appDelegate = UIApplication.sharedApplication().delegate as! AppDelegate
-                let managedContext = appDelegate.managedObjectContext
-                let documentsPath = NSSearchPathForDirectoriesInDomains(
-                    .DocumentDirectory, .UserDomainMask, true)[0]
-                
-                let managedPin = pinRequest(managedContext)
                 
                 let storedPathSet = managedPin.valueForKey("photo")?.valueForKey("path") as! NSSet
                 let storedPathArray = storedPathSet.allObjects
@@ -213,23 +204,18 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
      */
     func collectionView(collectionView: UICollectionView,
         didSelectItemAtIndexPath indexPath: NSIndexPath) {
+            
             photoCount = photoCount - 1
             
-            let appDelegate = UIApplication.sharedApplication().delegate as! AppDelegate
-            let managedContext = appDelegate.managedObjectContext
-            
-            
-            let managedPin = pinRequest(managedContext)
-            
-            //let storedPathSet = managedPin.valueForKey("photo")?.valueForKey("path") as! NSSet
-            //var storedPathArray = storedPathSet.allObjects
-            //storedPathArray.removeAtIndex(indexPath.row)
             do {
                 
                 let storedPhotos = managedPin.valueForKey("photo")?.allObjects
-                managedPin.valueForKey("photo")?.removeObject(storedPhotos![indexPath.row])
                 
+                let documentToRemove = Photo(path: NSURL(string: storedPhotos![indexPath.row].valueForKey("path") as! String)!)
                 
+                documentToRemove.deletePhoto()
+                            
+                managedContext.deleteObject(storedPhotos![indexPath.row] as! NSManagedObject)
                 try managedContext.save()
                 
             } catch {
@@ -285,20 +271,17 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
     /**
      Creates and saves a photo into Core Data.
      - Parameters:
-     - lat - the latitude of the pin
-     - long - the longitude of the pin
+     - path - the full path to the photo
      */
     func savePhoto(path: String) {
-        let appDelegate = UIApplication.sharedApplication().delegate as! AppDelegate
-        let managedContext = appDelegate.managedObjectContext
+        
         let photoEntity = NSEntityDescription.entityForName("Photo",inManagedObjectContext: managedContext)
         let photo = NSManagedObject(entity: photoEntity!,insertIntoManagedObjectContext: managedContext)
         
         do {
             photo.setValue(path, forKey: "path")
-            
-            let storedPin = pinRequest(managedContext)
-            
+            photo.setValue(randomString(), forKey: "id")
+            let storedPin = objectRetrieve(managedContext, objectid: receivedPinId, entity: "Pin")
             photo.setValue(storedPin, forKey: "pin")
             
             
@@ -307,29 +290,6 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
         } catch {
             showAlert("Could not save data. The photos were not saved.")
             return
-        }
-    }
-    
-    func pinRequest(context : NSManagedObjectContext) -> AnyObject {
-        
-        let pinEntity = NSEntityDescription.entityForName("Pin",inManagedObjectContext: context)
-        let request = NSFetchRequest()
-        request.entity = pinEntity
-        request.predicate = NSPredicate(format: "(id = %@)", receivedPinId)
-        
-        print("id -> " + String(receivedPinId))
-        
-        do {
-            let results = try context.executeFetchRequest(request)
-            guard results.count > 0 else {
-                return []
-            }
-            return results[0]
-            
-        }
-        catch {
-            showAlert("Could not acces Core Data. Your photos were not saved")
-            return []
         }
     }
     
