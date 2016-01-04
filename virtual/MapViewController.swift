@@ -12,11 +12,10 @@ import UIKit
 
 class MapViewController: UIViewController, MKMapViewDelegate {
     
-    // #MARK : Outlets
-    
+    // MARK: - Outlets
     @IBOutlet weak var mapView: MKMapView!
     
-    // #MARK : Private
+    // MARK: - Private
     private var clickedPin : Pin!
     private var pins = [NSManagedObject]()
     

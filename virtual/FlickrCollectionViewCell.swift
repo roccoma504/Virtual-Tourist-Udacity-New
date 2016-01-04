@@ -8,6 +8,7 @@
 
 import UIKit
 
+// This class defines a custom collection view cell.
 class FlickrCollectionViewCell: UICollectionViewCell {
     @IBOutlet weak var flickrImage: UIImageView!
     @IBOutlet weak var activiy: UIActivityIndicatorView!

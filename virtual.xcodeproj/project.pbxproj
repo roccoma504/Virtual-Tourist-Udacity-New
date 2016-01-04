@@ -115,17 +115,17 @@
 		393C29DA1C23867300027209 /* virtual */ = {
 			isa = PBXGroup;
 			children = (
-				396C6F071C30930600C3AE77 /* PlaceHolder.png */,
 				393C29EA1C23867300027209 /* Info.plist */,
+				396C6F071C30930600C3AE77 /* PlaceHolder.png */,
 				394143781C27240F00E4C0B1 /* APIKeys.swift */,
 				393C29DB1C23867300027209 /* AppDelegate.swift */,
 				394143701C23939B00E4C0B1 /* CollectionViewController.swift */,
 				394143721C2396C000E4C0B1 /* FlickrCollectionViewCell.swift */,
 				393C29DD1C23867300027209 /* MapViewController.swift */,
-				398199101C38A50500554BCC /* Utilities.swift */,
 				394143741C2399E600E4C0B1 /* Photo.swift */,
 				394143761C27233B00E4C0B1 /* PhotoNetworkOps.swift */,
 				3941436E1C238C1000E4C0B1 /* Pin.swift */,
+				398199101C38A50500554BCC /* Utilities.swift */,
 				393C29E51C23867300027209 /* Assets.xcassets */,
 				393C29E71C23867300027209 /* LaunchScreen.storyboard */,
 				393C29DF1C23867300027209 /* Main.storyboard */,

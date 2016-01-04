@@ -8,5 +8,6 @@
 
 import Foundation
 
+// Defines all API keys.
 let KEY = "4e739132baacf1d44fe17073b4d03d37"
 let SECRET = "5fa9501431df2e30"

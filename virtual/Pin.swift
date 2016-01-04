@@ -11,6 +11,7 @@ import MapKit
 
 class Pin : NSObject, MKAnnotation {
     
+    // MARK: - Variables
     var coordinate: CLLocationCoordinate2D
     var title: String?
     var id: String?
@@ -21,6 +22,7 @@ class Pin : NSObject, MKAnnotation {
         self.id = id
     }
     
+    // Returns the constructed pin.
     func pin() -> Pin {
         return self
     }

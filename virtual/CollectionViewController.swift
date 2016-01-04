@@ -12,32 +12,33 @@ import UIKit
 
 class CollectionViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate, MKMapViewDelegate {
     
-    // #MARK : Outlets
+    // MARK: - Outlets
+    @IBOutlet weak var activityView: UIActivityIndicatorView!
     @IBOutlet weak var collectionView: UICollectionView!
     @IBOutlet weak var mapView: MKMapView!
     @IBOutlet weak var newCollectionButton: UIBarButtonItem!
     @IBOutlet weak var noPhotoLabel: UILabel!
-    @IBOutlet weak var activityView: UIActivityIndicatorView!
     
-    // #MARK : Variables
+    // MARK: - Variables
     var receivedAnnotation : MKAnnotationView!
     var receivedPinId : String!
     
-    // #MARK : Private
-    private var photoCount = 0;
-    private var photos = [UIImage!]();
-    private var imagesReadyArray = [Bool!]()
-    private var documentsPath : String!
-    private var managedPin : AnyObject!
+    // MARK: - Private
     private var appDelegate : AppDelegate!
+    private var documentsPath : String!
+    private var imagesReadyArray = [Bool!]()
+    private var page = 1
+    private var photos = [UIImage!]();
+    private var photoCount = 0;
     private var managedContext : NSManagedObjectContext!
+    private var managedPin : AnyObject!
     
     /**
-     Perform setup processing.
+     Perform setup processing. There are a few common variables that we
+     want to set here.
      */
     override func viewDidLoad() {
-        documentsPath = NSSearchPathForDirectoriesInDomains(
-            .DocumentDirectory, .UserDomainMask, true)[0]
+        documentsPath = NSSearchPathForDirectoriesInDomains(.DocumentDirectory, .UserDomainMask, true)[0]
         appDelegate = UIApplication.sharedApplication().delegate as! AppDelegate
         managedContext = appDelegate.managedObjectContext
         managedPin = objectRetrieve(managedContext, objectid: receivedPinId, entity: "Pin")
@@ -45,23 +46,42 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
         super.viewDidLoad()
     }
     
+    /**
+     Everytime this view appears we want to show the pin on the mapview as well
+     as determine if we need to retrieve images (new pin) or load from Core Data.
+     */
     override func viewDidAppear(animated: Bool) {
+        
+        // Setup the map.
         mapView.delegate = self
         setupMap()
         
-        if objectRetrieve(managedContext, objectid: receivedPinId, entity: "Pin").valueForKey("photo")?.count > 0 {
-            retreiveStoredCollection(objectRetrieve(managedContext, objectid: receivedPinId, entity: "Pin") as! NSManagedObject)
-            updateActivity(false)
+        /**
+        If the Pin the user clicked on has photos associated with it, load
+        the photos that are stored, if not we need to retrieve new photos.
+        We also update the UI.
+        */
+        if objectRetrieve(managedContext,
+            objectid: receivedPinId,
+            entity: "Pin").valueForKey("photo")?.count > 0 {
+                
+                retreiveStoredCollection(objectRetrieve(managedContext,
+                    objectid: receivedPinId,
+                    entity: "Pin") as! NSManagedObject)
+                
+                updateActivity(false)
         }
         else {
             retrieveNewCollection()
             updateActivity(true)
         }
         newCollectionButton.enabled = false;
+        
     }
     
     /**
-     Performs all processing to retrieve a new collection.
+     This is a helper function that wraps the photo retrieval from Flickr.
+     When a download is complete the collection is reloaded.
      */
     private func retrieveNewCollection() {
         getPhotos((receivedAnnotation.annotation?.coordinate.latitude)!,
@@ -70,11 +90,24 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
         }
     }
     
+    /**
+     Retrieves the stored photos from the documents directory.
+     - Parameters:
+     - pin - the pin that was retrieved from the mapview.
+     */
     private func retreiveStoredCollection(pin : NSManagedObject) {
         
+        // Defines all of the photos associated with the pin.
         let storedPhotos = pin.valueForKey("photo")?.allObjects
         
-    for photo in storedPhotos! {
+        /**
+        For each photo associated with the pin we need to append the path
+        to the documents directory path. As the simulator is finicky and
+        can sometimes change the document directory and to protect and future
+        changes, the file path (which is really the file name) is appended
+        to the documents directory path.
+        */
+        for photo in storedPhotos! {
             let filePath = documentsPath.stringByAppendingString(photo.valueForKey("path") as! String)
             
             let image = UIImage(contentsOfFile: filePath)
@@ -111,65 +144,101 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
     }
     
     /**
-     Gets the photos from Flickr.
+     This function will get and download the images from Flickr. The download
+     is asyncronous so the completion is marked done everytime an image
+     is completed. The collection will reload everytime the completion is
+     true which is how we want the collection to react.
+     - Parameters:
+     - lat - the latitude for the search
+     - long - the longitude for the search
+     - completion - completion block for the image download
+     - Returns: result - when true an image download has been completed.
      */
-    private func getPhotos(lat : Double, long : Double, completion: (result: Bool) -> Void) {
-        
-        let photoOps = PhotoNetworkOps(lat: lat, long: long)
-        photoOps.getFlikrPhoto { (result) -> Void in
+    private func getPhotos(
+        lat : Double,
+        long : Double,
+        completion: (result: Bool) -> Void) {
             
-            self.photoCount = photoOps.urls().count
-            self.reload()
-            for i in 0...self.photoCount - 1 {
-                self.imagesReadyArray.append(false)
-                photoOps.downloadImage(photoOps.urls()[i], completion: { (result) -> Void in
-                    
-                    // Convert the image to data for Core Data storage.
-                    let imageData: NSData = UIImageJPEGRepresentation(photoOps.flickrImage(), 1.0)!
-                    
-                    let filePath = self.documentsPath.stringByAppendingString(photoOps.fileName())
-                    let success = imageData.writeToFile(filePath, atomically: true)
-                    if !success {
-                        self.showAlert("Could not save image. Your storage may be full. Free some space and try again.")
-                        return
-                    }
-                    
-                    //self.photos.append(photoOps.flickrImage())
-                    self.imagesReadyArray[i] = true
-                    self.savePhoto(photoOps.fileName())
-                    completion(result: true)
-                    if self.imagesReadyArray.count >= self.photoCount {
-                        dispatch_async(dispatch_get_main_queue(),{
-                            self.newCollectionButton.enabled = true
-                        })
-                    }
-                })
+            // Define a new photo ops object with the lat/long we want.
+            let photoOps = PhotoNetworkOps(lat: lat, long: long)
+            
+            // Get the photos from Flickr.
+            photoOps.getFlikrPhoto(page) { (result) -> Void in
+                
+                /**
+                Set the photo count to the number of photos Flickr said there
+                was for the location and reload the table to show place holder
+                images.
+                */
+                self.photoCount = photoOps.urls().count
+                self.reload()
+                
+                /**
+                For each photo in the array we perform the following.
+                1. Download the image
+                2. Convert the image to NSData
+                3. Write the file to the documents directory
+                4. Set the image ready flag to true for that image
+                5. Save the path to Core Data
+                6. Mark the processing complete
+                */
+                for i in 0...self.photoCount - 1 {
+                    self.imagesReadyArray.append(false)
+                    photoOps.downloadImage(photoOps.urls()[i], completion: { (result) -> Void in
+                        
+                        // Convert the image to data for storage.
+                        let imageData: NSData =
+                        UIImageJPEGRepresentation(photoOps.flickrImage(), 1.0)!
+                        
+                        let filePath = self.documentsPath.stringByAppendingString(photoOps.fileName())
+                        let success = imageData.writeToFile(filePath, atomically: true)
+                        if !success {
+                            self.showAlert("Could not save image. Your storage may be full. Free some space and try again.")
+                            return
+                        }
+                        
+                        self.imagesReadyArray[i] = true
+                        self.savePhoto(photoOps.fileName())
+                        completion(result: true)
+                        
+                        // If we have the right number of images enable the button.
+                        if self.imagesReadyArray.count >= self.photoCount {
+                            dispatch_async(dispatch_get_main_queue(),{
+                                self.newCollectionButton.enabled = true
+                            })
+                        }
+                    })
+                }
+                // Stop the activity spinner.
+                self.updateActivity(false)
             }
-            self.updateActivity(false)
-        }
     }
     
     /**
      Returns the number of cells in the collection.
+     - Parameters:
+     - collectionView - the collection view
+     - numberOfItemsInSection - the number of items in the section
+     - Returns: the number of containers
      */
     func collectionView(collectionView: UICollectionView,
         numberOfItemsInSection section: Int) -> Int {
-            
             noPhotoLabel.hidden = true
-            
-            if photoCount == 0 {
-                noPhotoLabel.hidden = false
-                updateLabel("No Photos!")
-            }
+            checkCount()
             return photoCount
     }
     
     /**
-     Defines the content of the cell.
+     Returns the content of the cells.
+     - Parameters:
+     - collectionView - the collection view
+     - cellForItemAtIndexPath - the given index path
+     - Returns: the completed cell
      */
     func collectionView(collectionView: UICollectionView,
         cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
             
+            // Define a custom cell.
             let cell = collectionView.dequeueReusableCellWithReuseIdentifier(
                 "cell", forIndexPath: indexPath) as! FlickrCollectionViewCell
             
@@ -179,16 +248,17 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
                     cell.flickrImage.image = UIImage(named:"PlaceHolder.png")
                     return cell
             }
+            
+            // If the image has been downloaded for the given index set it,
+            // if not keep the placeholder image.
             if imagesReadyArray[indexPath.row] == true {
                 
                 let storedPathSet = managedPin.valueForKey("photo")?.valueForKey("path") as! NSSet
                 let storedPathArray = storedPathSet.allObjects
                 let filePath = documentsPath.stringByAppendingString(storedPathArray[indexPath.row] as! String)
                 
-                
+                // Set the cell image and stop the activity.
                 cell.flickrImage.image = UIImage(contentsOfFile: filePath)
-                
-                
                 cell.activiy.stopAnimating()
             }
                 
@@ -200,43 +270,58 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
     }
     
     /**
-     When a cell is tapped remove it from the array, update the count
+     This function in invoked when the user taps an image. We
+     remove the object from the collection, update any Core Data objects,
+     and delete any underlying files.
+     - Parameters:
+     - collectionView - the collection view
+     - didSelectItemAtIndexPath - the selected container
      */
     func collectionView(collectionView: UICollectionView,
         didSelectItemAtIndexPath indexPath: NSIndexPath) {
-            
-            photoCount = photoCount - 1
-            
             do {
-                
+                // Retrieve all of the stored phots in the pin.
                 let storedPhotos = managedPin.valueForKey("photo")?.allObjects
+                let photoToRemove = Photo(path: NSURL(string: storedPhotos![indexPath.row].valueForKey("path") as! String)!)
                 
-                let documentToRemove = Photo(path: NSURL(string: storedPhotos![indexPath.row].valueForKey("path") as! String)!)
+                // Remove the photo from the documents directory.
+                photoToRemove.deletePhoto()
                 
-                documentToRemove.deletePhoto()
-                            
+                /**
+                Attempt to remove the relationship in Core Data. If successful,
+                remove the file from the documents directory. The order is
+                important as we don't want to remove the document if Core Data
+                bombs out for any reason.
+                */
                 managedContext.deleteObject(storedPhotos![indexPath.row] as! NSManagedObject)
                 try managedContext.save()
+                photoCount = photoCount - 1
+                checkCount()
+                if photoToRemove.isError() {
+                    showAlert("Photo could not be removed.")
+                }
                 
             } catch {
-                showAlert("Could not save data. The photos were not saved.")
+                showAlert("Could not save data. The modification was not saved.")
                 return
             }
-            
-            
             collectionView.deleteItemsAtIndexPaths([indexPath])
     }
     
     /**
-     Disable the button, wipe out the photos array, reload the table
-     and start over.
+     Disable the button, zero out the count, start the activity view,
+     mark all of the images not ready, reload the table and retrieve
+     a new collection.
+     - Parameters:
+     - sender - the object that triggered the function
      */
     @IBAction func newCollectionPress(sender: AnyObject) {
         newCollectionButton.enabled = false
         photoCount = 0
         updateActivity(true)
-        imagesReadyArray = [false]
+        imagesReadyArray.removeAll()
         reload()
+        page = page + 1
         retrieveNewCollection()
     }
     
@@ -250,7 +335,7 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
     }
     
     /**
-     Updates the label
+     Updates the label.
      */
     private func updateLabel(text : String) {
         dispatch_async(dispatch_get_main_queue(),{
@@ -273,17 +358,18 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
      - Parameters:
      - path - the full path to the photo
      */
-    func savePhoto(path: String) {
+    private func savePhoto(path: String) {
         
         let photoEntity = NSEntityDescription.entityForName("Photo",inManagedObjectContext: managedContext)
         let photo = NSManagedObject(entity: photoEntity!,insertIntoManagedObjectContext: managedContext)
         
+        // Set the vales of the new photo.
         do {
+            let storedPin = objectRetrieve(managedContext, objectid: receivedPinId, entity: "Pin")
+            
             photo.setValue(path, forKey: "path")
             photo.setValue(randomString(), forKey: "id")
-            let storedPin = objectRetrieve(managedContext, objectid: receivedPinId, entity: "Pin")
             photo.setValue(storedPin, forKey: "pin")
-            
             
             try managedContext.save()
             
@@ -293,11 +379,12 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
         }
     }
     
-    /** This subprogram generates an alert for the user based upon conditions
+    /**
+     This subprogram generates an alert for the user based upon conditions
      in the application. This view controller can generate two different
      alerts so this is here only for reuseability.
      */
-    func showAlert(message : String) {
+    private func showAlert(message : String) {
         dispatch_async(dispatch_get_main_queue(),{
             let alertController = UIAlertController(title: "Error!", message:
                 message, preferredStyle: UIAlertControllerStyle.Alert)
@@ -306,4 +393,19 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
             self.presentViewController(alertController,animated: true,completion: nil)
         })
     }
+    
+    /**
+     Checks the count of the collection view and enables the new
+     collection button.
+     */
+    private func checkCount() {
+        if photoCount <= 0 {
+            dispatch_async(dispatch_get_main_queue(),{
+                self.noPhotoLabel.hidden = false
+                self.updateLabel("No Photos!")
+            })
+        }
+        self.newCollectionButton.enabled = true
+    }
+    
 }
