@@ -4,6 +4,7 @@
 //
 //  Created by Matthew Rocco on 12/20/15.
 //  Copyright © 2015 Matthew Rocco. All rights reserved.
+//  # With inspiration from Jason @ Udacity.
 //
 
 import Foundation
@@ -19,12 +20,12 @@ class PhotoNetworkOps {
     private var lat : Double
     private var long : Double
     private var urlArray = [NSURL]()
-
+    
     init(lat : Double, long : Double){
         self.lat = lat
         self.long = long
     }
-
+    
     /**
      Retrieves the photos from Flickr.
      - Parameters:
@@ -66,11 +67,11 @@ class PhotoNetworkOps {
                 response as? NSHTTPURLResponse)?.statusCode where
                 statusCode >= 200 && statusCode <= 299 else {
                     if let response = response as? NSHTTPURLResponse {
-                        print("Your request returned an invalid response! Status code: \(response.statusCode)!")
+                        print("Error. Status code: \(response.statusCode)!")
                     } else if let response = response {
-                        print("Your request returned an invalid response! Response: \(response)!")
+                        print("Error. Response: \(response)!")
                     } else {
-                        print("Your request returned an invalid response!")
+                        print("Unknown Error.")
                     }
                     self.isError = true
                     completion(result: true)
@@ -91,7 +92,7 @@ class PhotoNetworkOps {
                 // Check to see if the response is in the way we expect it to be.
                 guard let photosDictionary = json["photos"] as? NSDictionary,
                     photoArray = photosDictionary["photo"] as? [[String: AnyObject]] else {
-                        print("Cannot find keys 'photos' and 'photo' in \(json)")
+                        print("Cannot find photo keys in response.")
                         self.isError = true
                         completion(result: true)
                         return
@@ -104,7 +105,7 @@ class PhotoNetworkOps {
                         
                         // Check to see if there is a url_m link.
                         guard let imageUrlString = photoDictionary["url_m"] as? String else {
-                            print("Cannot find key 'url_m' in \(photoDictionary)")
+                            print("Cannot find key url_m")
                             self.isError = true
                             completion(result: true)
                             return
@@ -117,16 +118,13 @@ class PhotoNetworkOps {
                         if let _ = NSData(contentsOfURL: imageURL!) {
                             self.urlArray.append(imageURL!)
                             if i >= (photoArray.count - 1) {
-                            completion(result: true)
+                                completion(result: true)
                             }
-
-                        } else {
-                            print("Image does not exist at \(imageURL)")
                         }
                     }
                 }
             } catch {
-                print("Could not parse the data as JSON: '\(data)'")
+                print("Could not parse the data as JSON")
                 return
             }
         }
@@ -172,7 +170,7 @@ class PhotoNetworkOps {
      - Returns: the current Flickr image filename
      */
     func errorPresent() -> Bool {
-    return isError
+        return isError
     }
     
     /** Returns a filename .
@@ -188,12 +186,12 @@ class PhotoNetworkOps {
      */
     private func getDataFromUrl(url:NSURL,
         completion: ((data: NSData?, response: NSURLResponse?, error: NSError? ) -> Void)) {
-        NSURLSession.sharedSession().dataTaskWithURL(url) { (data, response, error) in
-            completion(data: data, response: response, error: error)
-            }.resume()
+            NSURLSession.sharedSession().dataTaskWithURL(url) { (data, response, error) in
+                completion(data: data, response: response, error: error)
+                }.resume()
     }
     
-
+    
     /** Converts a input dict to a usable string.
      - Parameters:
      - parameters: - the dictionary that needs to be escaped
