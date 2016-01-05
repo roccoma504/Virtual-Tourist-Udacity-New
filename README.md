@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/roccoma504/Virtual-Tourist-Udacity-New.svg)](https://travis-ci.org/roccoma504/Virtual-Tourist-Udacity-New)
 [![codecov.io](https://codecov.io/github/roccoma504/Virtual-Tourist-Udacity-New/coverage.svg?branch=master)](https://codecov.io/github/roccoma504/Virtual-Tourist-Udacity-New?branch=master)
 
 
