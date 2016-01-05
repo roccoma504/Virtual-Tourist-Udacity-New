@@ -23,7 +23,7 @@ class virtualTests: XCTestCase {
     func testPin() {
         
         let location = CLLocationCoordinate2D(latitude: 100.0, longitude: 100.0)
-        let pin = Pin(coordinate: location)
+        let pin = Pin(coordinate: location, title: "", id: "")
         XCTAssertEqual(100.0, pin.pin().coordinate.latitude)
         XCTAssertEqual(100.0, pin.pin().coordinate.longitude)
     }
