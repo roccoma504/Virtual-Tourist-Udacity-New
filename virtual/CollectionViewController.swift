@@ -42,7 +42,6 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
         appDelegate = UIApplication.sharedApplication().delegate as! AppDelegate
         managedContext = appDelegate.managedObjectContext
         managedPin = objectRetrieve(managedContext, objectid: receivedPinId, entity: "Pin")
-        
         super.viewDidLoad()
     }
     
@@ -85,7 +84,8 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
      */
     private func retrieveNewCollection() {
         getPhotos((receivedAnnotation.annotation?.coordinate.latitude)!,
-            long: (receivedAnnotation.annotation?.coordinate.longitude)!) { (result) -> Void in
+            long: (receivedAnnotation.annotation?.coordinate.longitude)!) {
+                (result) -> Void in
                 self.reload()
         }
     }
@@ -97,24 +97,11 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
      */
     private func retreiveStoredCollection(pin : NSManagedObject) {
         
-        // Defines all of the photos associated with the pin.
-        let storedPhotos = pin.valueForKey("photo")?.allObjects
-        
         /**
-        For each photo associated with the pin we need to append the path
-        to the documents directory path. As the simulator is finicky and
-        can sometimes change the document directory and to protect and future
-        changes, the file path (which is really the file name) is appended
-        to the documents directory path.
+        For each photo associated with the pin we need to set a true
+        for the corresponding index in the image ready array.
         */
-        for photo in storedPhotos! {
-            let filePath = documentsPath.stringByAppendingString(photo.valueForKey("path") as! String)
-            
-            let image = UIImage(contentsOfFile: filePath)
-            if image == nil {
-                print("missing image at: \(photo)")
-            }
-            print("Loading image from path: \(photo)")
+        for _ in (pin.valueForKey("photo")?.allObjects)! {
             imagesReadyArray.append(true)
         }
         photoCount = pin.valueForKey("photo")!.count
@@ -164,6 +151,14 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
             
             // Get the photos from Flickr.
             photoOps.getFlikrPhoto(page) { (result) -> Void in
+                
+                // If there was an error, print the message and abort.
+                if photoOps.errorPresent() {
+                    self.showAlert(photoOps.errorMessage())
+                    self.updateActivity(false)
+                    self.newCollectionButton.enabled = true
+                    return
+                }
                 
                 /**
                 Set the photo count to the number of photos Flickr said there

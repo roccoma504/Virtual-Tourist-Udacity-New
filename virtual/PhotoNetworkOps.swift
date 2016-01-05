@@ -13,6 +13,8 @@ class PhotoNetworkOps {
     
     //MARK: - Private
     private var filename : String!
+    private var isError : Bool = false
+    private var errorText : String = "There was an error. Please check your connection or try again later."
     private var image : UIImage!
     private var lat : Double
     private var long : Double
@@ -55,6 +57,8 @@ class PhotoNetworkOps {
             // Check if there is an error with the request.
             guard (error == nil) else {
                 print("There was an error with your request: \(error)")
+                self.isError = true
+                completion(result: true)
                 return
             }
             // Check the status code and print it out.
@@ -68,11 +72,15 @@ class PhotoNetworkOps {
                     } else {
                         print("Your request returned an invalid response!")
                     }
+                    self.isError = true
+                    completion(result: true)
                     return
             }
             // Check if there is actually data.
             guard let data = data else {
                 print("No data was returned by the request!")
+                self.isError = true
+                completion(result: true)
                 return
             }
             var json : Dictionary<String, AnyObject>
@@ -84,6 +92,8 @@ class PhotoNetworkOps {
                 guard let photosDictionary = json["photos"] as? NSDictionary,
                     photoArray = photosDictionary["photo"] as? [[String: AnyObject]] else {
                         print("Cannot find keys 'photos' and 'photo' in \(json)")
+                        self.isError = true
+                        completion(result: true)
                         return
                 }
                 
@@ -95,6 +105,8 @@ class PhotoNetworkOps {
                         // Check to see if there is a url_m link.
                         guard let imageUrlString = photoDictionary["url_m"] as? String else {
                             print("Cannot find key 'url_m' in \(photoDictionary)")
+                            self.isError = true
+                            completion(result: true)
                             return
                         }
                         
@@ -149,11 +161,25 @@ class PhotoNetworkOps {
         return image
     }
     
-    /** Returns a filename .
+    /** Returns a filename.
      - Returns: the current Flickr image filename
      */
     func fileName() -> String {
         return filename
+    }
+    
+    /** Returns a filename.
+     - Returns: the current Flickr image filename
+     */
+    func errorPresent() -> Bool {
+    return isError
+    }
+    
+    /** Returns a filename .
+     - Returns: the current Flickr image filename
+     */
+    func errorMessage() -> String {
+        return errorText
     }
     
     /** Returns a Flickr image.
@@ -176,12 +202,9 @@ class PhotoNetworkOps {
     private func escapedParameters(dictionary: [String : AnyObject]) -> String {
         var urlVars = [String]()
         for (key, value) in dictionary {
-            /* Make sure that it is a string value */
             let stringValue = "\(value)"
-            /* Escape it */
             let escapedValue = stringValue.stringByAddingPercentEncodingWithAllowedCharacters(
                 NSCharacterSet.URLQueryAllowedCharacterSet())
-            /* Append it */
             urlVars += [key + "=" + "\(escapedValue!)"]
         }
         return (!urlVars.isEmpty ? "?" : "") + urlVars.joinWithSeparator("&")
