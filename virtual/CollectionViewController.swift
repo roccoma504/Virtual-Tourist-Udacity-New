@@ -38,7 +38,7 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
      want to set here.
      */
     override func viewDidLoad() {
-        documentsPath = NSSearchPathForDirectoriesInDomains(.DocumentDirectory, .UserDomainMask, true)[0]
+        documentsPath = NSSearchPathForDirectoriesInDomains(.DocumentDirectory, .UserDomainMask, true)[0] + "/"
         appDelegate = UIApplication.sharedApplication().delegate as! AppDelegate
         managedContext = appDelegate.managedObjectContext
         managedPin = objectRetrieve(managedContext, objectid: receivedPinId, entity: "Pin")

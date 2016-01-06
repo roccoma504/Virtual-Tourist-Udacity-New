@@ -30,10 +30,11 @@ class Photo : NSManagedObject {
     func deletePhoto() {
         let documentsPath =
         NSSearchPathForDirectoriesInDomains(
-            .DocumentDirectory, .UserDomainMask, true)[0]
+            .DocumentDirectory, .UserDomainMask, true)[0] + "/"
         
         let fileManager = NSFileManager.defaultManager()
         let filePath = documentsPath.stringByAppendingString(String(path))
+        print(filePath)
         do {
             try fileManager.removeItemAtPath(filePath)
         }
