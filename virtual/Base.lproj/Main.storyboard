@@ -88,7 +88,6 @@
                                             </subviews>
                                             <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
                                         </view>
-                                        <color key="backgroundColor" red="0.80340544871794872" green="0.76160089561284539" blue="0.75511572734202548" alpha="1" colorSpace="calibratedRGB"/>
                                         <constraints>
                                             <constraint firstItem="yaA-5C-S9g" firstAttribute="leading" secondItem="lYU-JX-3FN" secondAttribute="leadingMargin" constant="-6" id="EqB-Hp-udo"/>
                                             <constraint firstItem="yaA-5C-S9g" firstAttribute="centerX" secondItem="Ww0-F1-E1g" secondAttribute="centerX" id="GRk-iw-aab"/>

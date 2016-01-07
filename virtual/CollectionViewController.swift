@@ -244,11 +244,13 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
                     return cell
             }
             
+            let storedPathSet = managedPin.valueForKey("photo")?.valueForKey("path") as! NSSet
+            
             // If the image has been downloaded for the given index set it,
             // if not keep the placeholder image.
-            if imagesReadyArray[indexPath.row] == true {
+            if imagesReadyArray[indexPath.row] == true &&
+                storedPathSet.allObjects.count >= indexPath.row + 1 {
                 
-                let storedPathSet = managedPin.valueForKey("photo")?.valueForKey("path") as! NSSet
                 let storedPathArray = storedPathSet.allObjects
                 let filePath = documentsPath.stringByAppendingString(storedPathArray[indexPath.row] as! String)
                 
