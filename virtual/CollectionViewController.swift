@@ -91,6 +91,33 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
     }
     
     /**
+     This function removes the old photos from the documents directory
+     and Core Data.
+     */
+    private func removeOldCollection() {
+        
+        // Retrieve all of the stored phots in the pin.
+        let storedPhotos = self.managedPin.valueForKey("photo")?.allObjects
+        /**
+        For each photo remove the file from the document directory
+        and delete the entry in Core Data.
+        */
+        for photo in storedPhotos! {
+            do {
+                let filename = photo.valueForKey("path") as! String
+                let photoToRemove = Photo(path: NSURL(string: filename)!)
+                
+                photoToRemove.deletePhoto()
+                self.managedContext.deleteObject(photo as! NSManagedObject)
+                try managedContext.save()
+            }
+            catch {
+                showAlert("Core Data failure. Your changes were not saved.")
+            }
+        }
+    }
+    
+    /**
      Retrieves the stored photos from the documents directory.
      - Parameters:
      - pin - the pin that was retrieved from the mapview.
@@ -250,13 +277,13 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
             // if not keep the placeholder image.
             if imagesReadyArray[indexPath.row] == true &&
                 storedPathSet.allObjects.count >= indexPath.row + 1 {
-                
-                let storedPathArray = storedPathSet.allObjects
-                let filePath = documentsPath.stringByAppendingString(storedPathArray[indexPath.row] as! String)
-                
-                // Set the cell image and stop the activity.
-                cell.flickrImage.image = UIImage(contentsOfFile: filePath)
-                cell.activiy.stopAnimating()
+                    
+                    let storedPathArray = storedPathSet.allObjects
+                    let filePath = documentsPath.stringByAppendingString(storedPathArray[indexPath.row] as! String)
+                    
+                    // Set the cell image and stop the activity.
+                    cell.flickrImage.image = UIImage(contentsOfFile: filePath)
+                    cell.activiy.stopAnimating()
             }
                 
             else {
@@ -319,6 +346,7 @@ class CollectionViewController: UIViewController, UICollectionViewDataSource, UI
         imagesReadyArray.removeAll()
         reload()
         page = page + 1
+        removeOldCollection()
         retrieveNewCollection()
     }
     
